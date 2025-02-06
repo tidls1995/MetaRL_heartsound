@@ -1,4 +1,4 @@
-from mnist_env import HSSEnv
+from RL_env import HSSEnv
 import numpy as np
 import torchaudio
 import matplotlib.pyplot as plt
