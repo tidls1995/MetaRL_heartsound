@@ -1,5 +1,5 @@
 import wandb
-from mnist_env import HSSEnv, ten_to_np
+from RL_env import HSSEnv, ten_to_np
 from actor_critic_agent import ActorCriticNNAgent
 from PPO_agent import HSSNet, PPO,torch_to_numpy, numpy_to_torch
 import torch.optim as optim
@@ -11,7 +11,7 @@ import sys
 import torch
 import matplotlib.pyplot as plt
 import learn2learn as l2l
-from mnist_env import load_hss
+from RL_env import load_hss
 import random
 import copy
 import gc
