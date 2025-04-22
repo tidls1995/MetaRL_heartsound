@@ -20,23 +20,7 @@ WINDOW_SIZE = 25
 RANDOM_LOC = False
 AUDIO_DIR = "audio_dir"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-'''
-Notes:
-    Agent navigation for image classification. We propose
-    an image classification task starting with a masked image
-    where the agent starts at a random location on the image. It
-    can unmask windows of the image by moving in one of 8 directions.
-     At each timestep it
-    also outputs a probability distribution over possible classes
-    C. The episode ends when the agent correctly classifies the
-    image or a maximum of 20 steps is reached. The agent receives a 
-    -0.1 reward at each timestep that it misclassifies the
-    image. The state received at each time step is the full image
-    with unobserved parts masked out.
 
-    -- for now, agent outputs direction of movement and class prediction (0-9)
-    -- correct guess ends game
-'''
 class HeartSoundDataset(Dataset):
 
     def __init__(self, annotations_file, audio_dir, transformation,
