@@ -1,0 +1,46 @@
+# maml_trainer.py
+
+import time
+import torch
+import torch.optim as optim
+import learn2learn as l2l
+import numpy as np
+from RL_env import load_hss, ten_to_np
+from PPO_agent import HSSNet
+from your_main_script_name import compute_loss, create_episodic_data, transform_data  # 경로 조정 필요
+
+def train_maml_model(batch_size=64, meta_iter=20, n_way=2, k_shot=1, q_query=10, num_episodes=5):
+    original_model = HSSNet()
+
+    # Wrap with MAML
+    maml_model = l2l.algorithms.MAML(original_model, lr=0.0003, first_order=False)
+    meta_optimizer = optim.Adam(maml_model.parameters(), lr=0.0001)
+
+    print("Meta learning started...")
+    start = time.time()
+
+    for epoch in range(meta_iter):
+        meta_loss = 0.0
+        hss_train, _, _ = load_hss(download=False, batch_size=batch_size)
+        task_data = ten_to_np(hss_train)
+        data = transform_data(task_data)
+        episodes = create_episodic_data(data, n_way, k_shot, q_query, num_episodes)
+
+        for support_set, query_set in episodes:
+            learner = maml_model.clone()
+            support_loss = compute_loss(learner, support_set)
+            learner.adapt(support_loss)
+
+            query_loss = compute_loss(learner, query_set)
+            meta_loss += query_loss
+
+        meta_optimizer.zero_grad()
+        meta_loss.backward()
+        meta_optimizer.step()
+
+        print(f"[Meta Iter {epoch+1}/{meta_iter}] Meta Loss: {meta_loss.item():.4f}")
+
+    end = time.time()
+    print(f"MAML completed {meta_iter} iterations in {end - start:.2f} seconds.")
+
+    return maml_model.module  # Meta-trained model 반환
