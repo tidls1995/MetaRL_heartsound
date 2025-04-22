@@ -25,8 +25,8 @@ Notes:
     Agent navigation for image classification. We propose
     an image classification task starting with a masked image
     where the agent starts at a random location on the image. It
-    can unmask windows of the image by moving in one of 4 directions: 
-    {UP, DOWN, LEFT, RIGHT}. At each timestep it
+    can unmask windows of the image by moving in one of 8 directions.
+     At each timestep it
     also outputs a probability distribution over possible classes
     C. The episode ends when the agent correctly classifies the
     image or a maximum of 20 steps is reached. The agent receives a 
