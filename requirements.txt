@@ -1,0 +1,10 @@
+torch>=2.0
+torchaudio>=2.0
+numpy
+matplotlib
+gym
+wandb
+learn2learn
+pandas
+scikit-learn 
+librosa        
