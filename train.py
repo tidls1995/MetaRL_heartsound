@@ -1,7 +1,8 @@
 import wandb
-from RL_env import HSSEnv, ten_to_np
+from RL_env import HSSEnv, ten_to_np,load_hss
 from actor_critic_agent import ActorCriticNNAgent
 from PPO_agent import HSSNet, PPO,torch_to_numpy, numpy_to_torch
+from maml_trainer import train_maml_model
 import torch.optim as optim
 from torch import nn
 import numpy as np
@@ -11,7 +12,6 @@ import sys
 import torch
 import matplotlib.pyplot as plt
 import learn2learn as l2l
-from RL_env import load_hss
 import random
 import copy
 import gc
@@ -26,7 +26,7 @@ list_seeds = [486, 123, 456, 789, 1010, 2069, 3030, 4040, 5050, 6060]
 
 wandb.login(key='5cd7de9df578ecd7951639d8b7c9274e559f8514')
 STEPS = 0
-MAX_STEPS = 700000
+MAX_STEPS = 800000
 def seed_all(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -153,87 +153,35 @@ def main():
     meta_iter = 20
     num_episodes = 5
 
-"""for MAML algorthm , if you want use it just remove annotation and use trained model for make instance"""
+# for MAML algorthm , if you want use it just remove annotation and use trained model for make instance
+use_maml = True #False
 
-    for seed in list_seeds:
+for seed in list_seeds:
+    seed_all(seed)
 
-        # ## MAML for HSSNet 시작
-        # ###수정본시작
-        # original_model = HSSNet()
-        #
-        # # MAML 래퍼를 사용하여 모델 준비
-        # maml_model = l2l.algorithms.MAML(original_model, lr=0.0003, first_order=False)
-        #
-        # # 최적화기 설정
-        # meta_optimizer = optim.Adam(maml_model.parameters(), lr=0.0001)
-        #
-        # start = time.time()
-        #
-        # n_way = 2
-        # k_shot = 1
-        # q_query = 10
-        #
-        #
-        # print("Meta learning started...")
-        #
-        # for epoch in range(meta_iter):  # 전체 메타학습 과정이 몇번 이뤄지나?
-        #     meta_loss = 0.0
-        #     hss_train, _, _ = load_hss(download=False, batch_size=args.batch_size)
-        #     task_data = ten_to_np(hss_train)
-        #     data = transform_data(task_data)
-        #     episodes = create_episodic_data(data, n_way, k_shot, q_query, num_episodes = num_episodes)
-        #
-        #     for support_set, query_set in episodes:  # 에포크당 작업 수가 어떻게 되나?
-        #         # 적응 학습
-        #         learner = maml_model.clone()
-        #         support_loss = compute_loss(learner, support_set)
-        #         learner.adapt(support_loss)
-        #
-        #         # Compute query loss on adapted clone
-        #         query_loss = compute_loss(learner, query_set)
-        #         meta_loss += query_loss
-        #
-        #     meta_optimizer.zero_grad()
-        #     meta_loss.backward()
-        #     meta_optimizer.step()
-        #
-        #     print(f"Iteration {epoch + 1}/{meta_iter}, Meta Loss: {meta_loss.item()}")
-        #
-        #
-        # end = time.time()
-        # print("metrix. Completed %d iterations in %.3f s" % \
-        #       (meta_iter, end - start))
-        #
-        # ### 수정본 끝
-        #
-        #
-        # trained_model = maml_model.module
+    if use_maml:
+        trained_model = train_maml_model(
+            batch_size=args.batch_size,
+            meta_iter=meta_iter,
+            n_way=2,
+            k_shot=1,
+            q_query=10,
+            num_episodes=num_episodes
+        )
+    else:
+        trained_model = HSSNet()
 
+    initialize_wandb("0829A2C ", "results", f'seed{seed}')
+    trained_agent = train(trained_model, args.iters, args.batch_size, verbose=args.verbose, seed=seed)
+    test_agent = trained_agent.copy()
+    test(test_agent)
+    wandb.finish()
 
-       #wandb.init(project="HSSEnv",group="PPO",name=f'seed{seed}',reinit=True)
-        initialize_wandb("0829A2C ", "results", f'seed{seed}')
-
-        seed_all(seed)
-        print("Training...")
-        trained_agent = train(HSSNet(),args.iters, args.batch_size, verbose=args.verbose, seed = seed )
-        #trained_agent = train(trained_model,args.iters, args.batch_size, verbose=args.verbose, seed = seed )
-        test_agent = trained_agent.copy()
-
-        print("Testing...")
-        print("num_seed : ",seed)
-        test(test_agent)
-        STEPS = 0
-        wandb.finish()
-
-
-
-# 학습률 감소를 위한 함수
 def adjust_learning_rate(optimizer, lr_decay_factor):
     for param_group in optimizer.param_groups:
         param_group['lr'] *= lr_decay_factor
 
-def obs_to_input(obs):  # 관측값을 신경망의 입력 형식으로 변환한다. 입력을 1,28,28 형태로 재구성
-    # reshape to (1, 256, 256)
+def obs_to_input(obs):
     return obs[np.newaxis, ...]
 
 def validate(agent, env, episodes=50):
